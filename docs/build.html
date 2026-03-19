@@ -1,147 +1,313 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Sonic 2 — Build (Drag & Drop)</title>
-  <meta name="description" content="Drop a Sonic 2 ROM to run it in WebAssembly using WebRetro + Genesis Plus GX." />
-  <style>
-    :root { --bg:#0e1220; --panel:#141a2b; --muted:#9fb2d0; --line:#223; --link:#9dd6ff; --accent:#8ac7ff; }
-    *{box-sizing:border-box}
-    html,body{height:100%;margin:0;background:var(--bg);color:#e8edf7;font:16px/1.55 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial}
-    a{color:var(--link);text-decoration:none} a:hover{text-decoration:underline}
-    header,.wrap{max-width:980px;margin:16px auto;padding:0 16px}
-    header{padding:12px 16px;background:var(--panel);border:1px solid var(--line);border-radius:14px}
-    .muted{color:var(--muted)}
-    .grid{display:grid;gap:16px;grid-template-columns:1fr}
-    .panel{border:1px solid var(--line);background:#0f1424;border-radius:14px;padding:12px}
-    .drop{display:flex;align-items:center;justify-content:center;height:160px;border:2px dashed #2b3a5f;border-radius:14px;background:#0c1222}
-    .drop.drag{background:#0a1530;border-color:#3d5aa0}
-    iframe{width:100%;height:66vh;border:0;border-radius:14px;background:#000}
-    .row{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px}
-    .btn{display:inline-block;padding:8px 12px;border-radius:999px;background:#1b2335;border:1px solid #2c3a5a}
-    code{background:#0f1320;border:1px solid #1c2640;border-radius:6px;padding:2px 6px}
-    small{color:var(--muted)}
-  </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Sonic 2 — Patch to s2built.bin (Browser‑only)</title>
+<meta name="description" content="Drop a clean Sonic 2 ROM (.bin) and a patch (.bps or .ips). This page will create s2built.bin in your browser; nothing is uploaded." />
+<style>
+  :root { --bg:#0e1220; --panel:#141a2b; --muted:#9fb2d0; --line:#223; --link:#9dd6ff; }
+  *{box-sizing:border-box} html,body{height:100%;margin:0;background:var(--bg);color:#e8edf7;font:16px/1.55 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial}
+  a{color:var(--link);text-decoration:none} a:hover{text-decoration:underline}
+  header,.wrap{max-width:980px;margin:16px auto;padding:0 16px}
+  header{padding:12px 16px;background:var(--panel);border:1px solid var(--line);border-radius:14px}
+  .muted{color:var(--muted)} .grid{display:grid;gap:16px;grid-template-columns:1fr} .panel{border:1px solid var(--line);background:#0f1424;border-radius:14px;padding:12px}
+  .drop{display:flex;align-items:center;justify-content:center;height:140px;border:2px dashed #2b3a5f;border-radius:14px;background:#0c1222;text-align:center}
+  .drop strong{color:#9dd6ff}
+  .drop.drag{background:#0a1530;border-color:#3d5aa0}
+  .row{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+  .btn{display:inline-block;padding:8px 12px;border-radius:999px;background:#1b2335;border:1px solid #2c3a5a}
+  code{background:#0f1320;border:1px solid #1c2640;border-radius:6px;padding:2px 6px}
+  .monos{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+  .ok{color:#7ee787} .warn{color:#ffd580} .err{color:#ff8383}
+  .small{font-size:13px}
+</style>
 </head>
 <body>
-  <header>
-    <h1>Sonic 2 — Build (Drag & Drop)</h1>
-    <p class="muted">Run a Sonic 2 ROM with the Genesis Plus GX core in your browser.</p>
-  </header>
+<header>
+  <h1>Sonic 2 — Browser Patch → <span class="monos">s2built.bin</span></h1>
+  <p class="muted small">Drop a clean Sonic 2 <strong>.bin</strong> and a patch <strong>.bps</strong> or <strong>.ips</strong>. All work happens locally in your browser.</p>
+</header>
 
-  <div class="wrap grid">
-    <div class="panel">
-      <h3>1) Drop your ROM or pick a file</h3>
-      <div id="drop" class="drop" aria-label="Drop ROM here">Drop <strong>.bin</strong>, <strong>.md</strong>, or <strong>.smd</strong> here</div>
-      <div class="row">
-        <input id="file" type="file" accept=".bin,.md,.smd,.zip" />
-        <button id="openUpload" class="btn">Open WebRetro uploader</button>
-        <small id="modeNote" class="muted"></small>
-      </div>
-    </div>
+<div class="wrap grid">
+  <div class="panel">
+    <h3>1) Drop files</h3>
+    <div id="dropRom"  class="drop" aria-label="Drop base ROM here">Drop <strong>clean Sonic 2 .bin</strong> here</div>
+    <div class="row"><input id="romInput" type="file" accept=".bin,.md,.smd" /></div>
 
-    <div class="panel">
-      <h3>2) Emulator</h3>
-      <p id="status" class="muted">Waiting for ROM…</p>
-      <iframe id="emu" allow="gamepad *; fullscreen *" title="WebRetro (Genesis Plus GX)"></iframe>
-    </div>
+    <div id="dropPatch" class="drop" aria-label="Drop patch file here" style="margin-top:12px">Drop patch <strong>.bps</strong> or <strong>.ips</strong> here</div>
+    <div class="row"><input id="patchInput" type="file" accept=".bps,.ips" /></div>
 
-    <div class="panel">
-      <h3>About</h3>
-      <ul>
-        <li>Emulator UI: <a href="https://github.com/BinBashBanana/webretro" target="_blank" rel="noopener">WebRetro</a> (WASM RetroArch) with <code>genesis_plus_gx</code> core. [2](https://github.com/sonicretro/s2disasm/issues)</li>
-        <li>Drag‑and‑drop auto‑boot works when the emulator is **same‑origin** (copy WebRetro into <code>docs/webretro/</code> and set <code>WEBRETRO_BASE</code> accordingly). Blob URLs are **origin‑bound**, so cross‑origin iframes can’t read them. [1](https://developer.mozilla.org/en-US/docs/Web/URI/Reference/Schemes/blob)</li>
-      </ul>
-      <p class="muted">Tip: You can also pass <code>?rom=&lt;URL or relative path&gt;</code> to this page; it will auto‑forward that to WebRetro.</p>
-    </div>
+    <p id="info" class="muted small">Waiting for files…</p>
   </div>
 
-  <script>
-    // ====== CONFIG ======
-    // Option 1 (default): use the official WebRetro instance (cross-origin).
-    // Option 2: set to "./webretro/" if you copy WebRetro into docs/webretro (same-origin).
-    const WEBRETRO_BASE = "https://binbashbanana.github.io/webretro/"; // change to "./webretro/" for same-origin DnD
-    const CORE = "genesis_plus_gx"; // Genesis/Mega Drive
-    const EXTRA_FLAGS = ["nobundle"]; // optional WebRetro flag
+  <div class="panel">
+    <h3>2) Patch → Download</h3>
+    <p id="status" class="muted small">When both files are loaded, click <em>Patch</em>.</p>
+    <div class="row">
+      <button id="doPatch" class="btn" disabled>Patch</button>
+      <a id="dl" class="btn" download="s2built.bin" style="display:none">Download s2built.bin</a>
+    </div>
+    <details style="margin-top:10px"><summary>Details & checksums (optional)</summary>
+      <pre id="details" class="small monos" style="white-space:pre-wrap"></pre>
+    </details>
+  </div>
 
-    const emuFrame = document.getElementById("emu");
-    const statusEl = document.getElementById("status");
-    const dropEl = document.getElementById("drop");
-    const fileEl = document.getElementById("file");
-    const openUploadBtn = document.getElementById("openUpload");
-    const modeNote = document.getElementById("modeNote");
+  <div class="panel">
+    <h3>Notes</h3>
+    <ul class="small">
+      <li><strong>BPS</strong> is a modern, checksummed patch format (Beat Patching System) designed by byuu/Near. It encodes differences using actions like <em>SourceRead</em>, <em>TargetRead</em>, <em>SourceCopy</em>, and <em>TargetCopy</em>, with variable‑length integers and final checksums. [1](https://floating.muncher.se/byuu/bps/bps_spec.html)[2](https://github.com/blakesmith/rombp/blob/master/docs/bps_spec.md)</li>
+      <li><strong>IPS</strong> is the classic patch format (International Patching System) with simple records and optional RLE records (no built‑in checksum), widely used for older hacks. [4](https://zerosoft.zophar.net/ips.php)[5](https://sneslab.net/wiki/IPS_file_format)</li>
+      <li>Distributing patches is the recommended way to share ROM modifications (patch = differences; it does not include the game). [6](https://rompatcher.app/patch-formats/)</li>
+    </ul>
+  </div>
+</div>
 
-    const pageUrl = new URL(window.location.href);
-    const romParam = pageUrl.searchParams.get("rom");
-    const webretroUrl = new URL(WEBRETRO_BASE, window.location.href);
-    const sameOrigin = webretroUrl.origin === window.location.origin;
+<script>
+/* -------------------------------------------------------------
+   Utilities (buffers, CRC32)
+------------------------------------------------------------- */
+const $ = (id)=>document.getElementById(id);
+const toHex = (n,len=8)=>("00000000"+(n>>>0).toString(16)).slice(-len);
+const crcTable = (()=>{ // standard CRC-32 (IEEE 802.3)
+  let c, table = new Uint32Array(256);
+  for (let n=0;n<256;n++){ c = n; for (let k=0;k<8;k++) c = (c&1)?(0xedb88320^(c>>>1)):(c>>>1); table[n]=c>>>0; }
+  return table;
+})();
+function crc32(buf){
+  let crc = 0xffffffff;
+  for (let i=0;i<buf.length;i++) crc = crcTable[(crc ^ buf[i]) & 0xff] ^ (crc>>>8);
+  return (crc ^ 0xffffffff)>>>0;
+}
+function be24(b,off){ return (b[off]<<16)|(b[off+1]<<8)|b[off+2]; }
+function be16(b,off){ return (b[off]<<8)|b[off+1]; }
 
-    // Update helper text
-    modeNote.textContent = sameOrigin
-      ? "Same-origin mode enabled: drag & drop will auto-boot."
-      : "Cross-origin mode: use the WebRetro uploader (drag & drop into emulator is not possible across origins).";
-
-    // Build a WebRetro URL with optional ROM
-    function makeWebretroURL(romAbsOrNull) {
-      const u = new URL(WEBRETRO_BASE, window.location.href);
-      u.searchParams.set("core", CORE);
-      if (romAbsOrNull) u.searchParams.set("rom", romAbsOrNull);
-      for (const f of EXTRA_FLAGS) u.searchParams.set(f, "");
-      return u;
+/* -------------------------------------------------------------
+   IPS patcher (spec: PATCH ... records ... EOF + optional truncate)
+   Ref: ZeroSoft spec; SNESLab notes (RLE and big-endian fields).  [4](https://zerosoft.zophar.net/ips.php)[5](https://sneslab.net/wiki/IPS_file_format)
+------------------------------------------------------------- */
+function applyIPS(rom, ips){
+  const src = new Uint8Array(rom); let dst = new Uint8Array(src); // start with copy
+  const p = new Uint8Array(ips);
+  // Header 'PATCH'
+  if (String.fromCharCode(...p.slice(0,5))!=='PATCH') throw new Error('Invalid IPS header');
+  let i=5;
+  while (i+3 <= p.length){
+    // End marker?
+    if (i+3<=p.length && p[i]===0x45 && p[i+1]===0x4f && p[i+2]===0x46){ // 'EOF'
+      i+=3;
+      break;
     }
+    // Record
+    const offset = be24(p,i); i+=3;
+    const size   = be16(p,i); i+=2;
+    if (size===0){
+      // RLE: next 2 bytes = run length, then 1 byte value.  [4](https://zerosoft.zophar.net/ips.php)
+      const rleSize = be16(p,i); i+=2;
+      const value   = p[i++];
 
-    // When cross-origin, open the uploader (WebRetro without 'rom=') in a new tab
-    openUploadBtn.addEventListener("click", () => {
-      const u = makeWebretroURL(null);
-      window.open(u.toString(), "_blank", "noopener");
-    });
+      const need = offset + rleSize;
+      if (need > dst.length){ // enlarge if needed (IPS can extend; some tools also support truncate)  [5](https://sneslab.net/wiki/IPS_file_format)
+        const grown = new Uint8Array(need);
+        grown.set(dst); dst = grown;
+      }
+      dst.fill(value, offset, offset+rleSize);
+    }else{
+      const need = offset + size;
+      if (need > dst.length){
+        const grown = new Uint8Array(need);
+        grown.set(dst); dst = grown;
+      }
+      dst.set(p.slice(i,i+size), offset); i+=size;
+    }
+  }
+  // Some IPS variants support a 3‑byte "truncate" offset after EOF; if present, trim.  [5](https://sneslab.net/wiki/IPS_file_format)
+  if (i+3===p.length){
+    const trunc = be24(p,i);
+    if (trunc>0 && trunc<=dst.length) dst = dst.slice(0,trunc);
+  }
+  return dst;
+}
 
-    // If user supplied ?rom=..., forward it to WebRetro (absolute URL so it works cross-origin).
-    if (romParam) {
-      const resolved = new URL(romParam, pageUrl.href).href;
-      const u = makeWebretroURL(resolved);
-      emuFrame.src = u.toString();
-      statusEl.textContent = "Loading ROM from URL…";
+/* -------------------------------------------------------------
+   BPS patcher (Beat Patching System)
+   Based on byuu/Near's BPS v1 spec: header "BPS1", varint numbers,
+   actions 0..3, ending with CRC32 for source/target/patch.         [1](https://floating.muncher.se/byuu/bps/bps_spec.html)[2](https://github.com/blakesmith/rombp/blob/master/docs/bps_spec.md)
+------------------------------------------------------------- */
+function readVarInt(p, state){
+  // variable-length encoding: 7 data bits per byte; continuation with clear MSB; spec uses "subtract one" trick.  [1](https://floating.muncher.se/byuu/bps/bps_spec.html)
+  let data=0n, shift=1n, x;
+  while (true){
+    x = BigInt(p[state.i++]);
+    data += (x & 0x7fn) * shift;
+    if (x & 0x80n) break;
+    shift <<= 7n; data += shift;
+  }
+  // fits in JS Number for ROM sizes we care about
+  return Number(data);
+}
+function readSigned(p, state){
+  // signed number: (abs(offset) << 1) | negativeFlag; 1 => negative.  [1](https://floating.muncher.se/byuu/bps/bps_spec.html)
+  const n = readVarInt(p,state);
+  const neg = (n & 1) !== 0;
+  const val = n >>> 1;
+  return neg ? -val : val;
+}
+function applyBPS(rom, bps){
+  const src = new Uint8Array(rom);
+  const patch = new Uint8Array(bps);
+  const view = patch;
+
+  // --- header ---
+  if (String.fromCharCode(...view.slice(0,4))!=='BPS1') throw new Error('Invalid BPS header');
+  const st = { i:4 };
+  const sourceSize = readVarInt(view, st);
+  const targetSize = readVarInt(view, st);
+  const metaSize   = readVarInt(view, st);
+  // metadata (ignored here)
+  st.i += metaSize;
+
+  // Prepare target
+  const out = new Uint8Array(targetSize);
+  let srcPos = 0, dstPos = 0, srcRel = 0, dstRel = 0;
+
+  // --- actions ---
+  while (dstPos < targetSize){
+    const cmd = readVarInt(view, st);
+    const action = cmd & 3;                 // 0..3
+    const length = (cmd >>> 2) + 1;         // ((length-1)<<2)|action  -> length = (x>>2)+1  [1](https://floating.muncher.se/byuu/bps/bps_spec.html)
+    switch (action){
+      case 0: // SourceRead: copy from src at srcPos
+        out.set(src.subarray(srcPos, srcPos+length), dstPos);
+        srcPos += length; dstPos += length;
+        break;
+      case 1: // TargetRead: literal bytes from patch
+        out.set(view.subarray(st.i, st.i+length), dstPos);
+        st.i += length; dstPos += length;
+        break;
+      case 2: { // SourceCopy: copy from src at (srcRel += signed)
+        srcRel += readSigned(view, st);
+        let pos = srcRel;
+        out.set(src.subarray(pos, pos+length), dstPos);
+        dstPos += length;
+        srcRel += length;
+        break;
+      }
+      case 3: { // TargetCopy: copy from out at (dstRel += signed)
+        dstRel += readSigned(view, st);
+        let pos = dstRel;
+        for (let k=0;k<length;k++) out[dstPos+k] = out[pos+k];
+        dstPos += length;
+        dstRel += length;
+        break;
+      }
+      default: throw new Error('Unknown BPS action');
+    }
+  }
+
+  // --- checksums (each is little‑endian CRC32, per spec) ---
+  // If desired, validate CRCs: source, target, patch.  [1](https://floating.muncher.se/byuu/bps/bps_spec.html)
+  const srcCrcLE   = view.slice(st.i, st.i+4); st.i+=4;
+  const tgtCrcLE   = view.slice(st.i, st.i+4); st.i+=4;
+  const patCrcLE   = view.slice(st.i, st.i+4); st.i+=4;
+
+  const crcSrc = crc32(src);
+  const crcTgt = crc32(out);
+  const crcPat = crc32(patch.subarray(0, patch.length-4)); // many tools compute over patch minus final CRC; we already consumed all 3 CRCs above
+
+  // Convert little‑endian arrays to number for comparison:
+  const le32 = (a)=> (a[0]|(a[1]<<8)|(a[2]<<16)|(a[3]<<24))>>>0;
+
+  const expectSrc = le32(srcCrcLE);
+  const expectTgt = le32(tgtCrcLE);
+  const expectPat = le32(patCrcLE);
+
+  // Non‑fatal warnings: show if mismatched (still return output for convenience).
+  const warns = [];
+  if (sourceSize !== src.length) warns.push(`BPS expected source size ${sourceSize}, got ${src.length}`);
+  if (expectSrc !== crcSrc)      warns.push(`BPS source CRC mismatch: expected 0x${toHex(expectSrc)}, got 0x${toHex(crcSrc)}`);
+  if (expectTgt !== crcTgt)      warns.push(`BPS target CRC mismatch: expected 0x${toHex(expectTgt)}, got 0x${toHex(crcTgt)}`);
+  if (expectPat !== crcPat)      warns.push(`BPS patch CRC mismatch: expected 0x${toHex(expectPat)}, got 0x${toHex(crcPat)}`);
+
+  return { out, warns };
+}
+
+/* -------------------------------------------------------------
+   UI glue
+------------------------------------------------------------- */
+const state = { rom:null, patch:null, patchType:null };
+function setInfo(msg, cls=''){ $('info').innerHTML = `<span class="${cls}">${msg}</span>`; }
+function setStatus(msg, cls=''){ $('status').innerHTML = `<span class="${cls}">${msg}</span>`; }
+function enablePatch(){ $('doPatch').disabled = !(state.rom && state.patch); }
+
+function handleFile(input, kind){
+  const f = input.files[0]; if (!f) return;
+  const reader = new FileReader();
+  reader.onload = ()=> {
+    const buf = reader.result;
+    if (kind==='rom'){
+      state.rom = buf;
+      setInfo(`ROM loaded: ${f.name} (${(f.size/1048576).toFixed(2)} MiB)`, 'ok');
     } else {
-      // Otherwise just show the emulator shell/uploader
-      emuFrame.src = makeWebretroURL(null).toString();
+      state.patch = buf;
+      const n = f.name.toLowerCase();
+      state.patchType = n.endsWith('.bps') ? 'bps' : n.endsWith('.ips') ? 'ips' : null;
+      if (!state.patchType) { setInfo(`Unsupported patch type: ${f.name}`, 'err'); return; }
+      setInfo(`Patch loaded: ${f.name} [${state.patchType.toUpperCase()}]`, 'ok');
     }
+    enablePatch();
+  };
+  reader.readAsArrayBuffer(f);
+}
 
-    // ---- Drag & Drop handlers (works only if same-origin) ----
-    const acceptExt = new Set([".bin",".md",".smd",".zip"]);
-    function extOK(name){ const i=name.lastIndexOf("."); return i>=0 && acceptExt.has(name.slice(i).toLowerCase()); }
+function makeDroppable(box, input, kind){
+  box.addEventListener('dragenter', e=>{ e.preventDefault(); box.classList.add('drag'); });
+  box.addEventListener('dragover',  e=>{ e.preventDefault(); });
+  box.addEventListener('dragleave', e=>{ box.classList.remove('drag'); });
+  box.addEventListener('drop',      e=>{
+    e.preventDefault(); box.classList.remove('drag');
+    const f = e.dataTransfer.files && e.dataTransfer.files[0];
+    if (!f) return;
+    const dt = new DataTransfer(); dt.items.add(f); input.files = dt.files;
+    handleFile(input, kind);
+  });
+}
 
-    function handleFile(file) {
-      if (!file) return;
-      if (!extOK(file.name)) {
-        statusEl.textContent = "Unsupported file type (use .bin, .md, .smd, or .zip).";
-        return;
-      }
-      if (!sameOrigin) {
-        statusEl.textContent = "Cross-origin: opening uploader (browser blocks passing local files to another origin).";
-        openUploadBtn.click();
-        return;
-      }
-      // Same-origin: create a blob: URL and pass it to WebRetro
-      const blobURL = URL.createObjectURL(file);
-      const u = makeWebretroURL(blobURL);
-      emuFrame.src = u.toString();
-      statusEl.textContent = "Booting dropped ROM…";
-      // Optional: revoke later if you add a 'Stop' button
-    }
+makeDroppable($('dropRom'),   $('romInput'),   'rom');
+makeDroppable($('dropPatch'), $('patchInput'), 'patch');
+$('romInput').addEventListener('change', ()=>handleFile($('romInput'),'rom'));
+$('patchInput').addEventListener('change', ()=>handleFile($('patchInput'),'patch'));
 
-    dropEl.addEventListener("dragenter", e => { e.preventDefault(); dropEl.classList.add("drag"); });
-    dropEl.addEventListener("dragover",  e => { e.preventDefault(); });
-    dropEl.addEventListener("dragleave", e => { dropEl.classList.remove("drag"); });
-    dropEl.addEventListener("drop",      e => {
-      e.preventDefault(); dropEl.classList.remove("drag");
-      const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
-      handleFile(f);
-    });
+$('doPatch').addEventListener('click', ()=>{
+  try{
+    setStatus('Patching…');
+    const rom = state.rom;
+    const patch = state.patch;
+    if (!rom || !patch || !state.patchType) throw new Error('ROM and patch are required');
 
-    fileEl.addEventListener("change", () => handleFile(fileEl.files[0]));
-  </script>
+    let out, warns=[];
+    if (state.patchType==='bps'){
+      const res = applyBPS(rom, patch); out = res.out; warns = res.warns;
+    } else if (state.patchType==='ips'){
+      out = applyIPS(rom, patch);
+    } else throw new Error('Unsupported patch type');
+
+    const blob = new Blob([out], {type:'application/octet-stream'});
+    $('dl').href = URL.createObjectURL(blob);
+    $('dl').style.display = 'inline-block';
+
+    // Display details/hashes
+    const romCrc = crc32(new Uint8Array(rom));
+    const outCrc = crc32(out);
+    $('details').textContent =
+      `ROM CRC32: 0x${toHex(romCrc)}\nPatched CRC32: 0x${toHex(outCrc)}\nOutput size: ${out.length} bytes\n` +
+      (warns.length? `Warnings:\n- ${warns.join('\n- ')}\n`:'');
+
+    setStatus('Success! Click “Download s2built.bin”.', 'ok');
+  }catch(err){
+    setStatus('Patch failed: '+err.message, 'err');
+  }
+});
+</script>
 </body>
 </html>
-``
