@@ -3,21 +3,99 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Sonic 2 (WebAssembly, same-origin)</title>
-  <style>html,body{height:100%;margin:0;background:#0e1220;color:#e8edf7;font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial}
-  header{max-width:980px;margin:16px auto;padding:12px 16px;border-radius:14px;border:1px solid #223;background:#141a2b}
-  .wrap{max-width:980px;margin:0 auto 18px} .panel{border:1px solid #223;background:#0f1424;border-radius:14px;padding:12px;margin:12px 0}
-  iframe{width:100%;height:70vh;border:0;border-radius:14px;background:#000} a{color:#9dd6ff}</style>
+  <title>Sonic 2 (WebAssembly)</title>
+  <meta name="description" content="Run the s2disasm build of Sonic 2 in your browser using WebRetro + Genesis Plus GX." />
+  <style>
+    :root { --bg:#0e1220; --panel:#141a2b; --muted:#9fb2d0; --line:#223; --link:#9dd6ff; --pill:#1b2335; }
+    * { box-sizing:border-box; }
+    html,body { height:100%; margin:0; background:var(--bg); color:#e8edf7; font:16px/1.55 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial; }
+    a { color:var(--link); text-decoration:none; } a:hover{ text-decoration:underline; }
+    header, .wrap { max-width:980px; margin:16px auto; padding:0 16px; }
+    header { padding:12px 16px; background:var(--panel); border:1px solid var(--line); border-radius:14px; }
+    .muted { color:var(--muted); }
+    .panel { border:1px solid var(--line); background:#0f1424; border-radius:14px; padding:12px; margin:12px 0; }
+    .pill { display:inline-block; margin-top:8px; padding:8px 12px; border-radius:999px; background:var(--pill); border:1px solid #2c3a5a; }
+    iframe { width:100%; height:70vh; border:0; border-radius:14px; background:#000; }
+    code { background:#0f1320; border:1px solid #1c2640; border-radius:6px; padding:2px 6px; }
+    ul { margin:0.3rem 0 0.6rem; }
+  </style>
 </head>
 <body>
-  <header><h1>Sonic 2 (WebAssembly)</h1></header>
+  <header>
+    <h1>Sonic 2 (WebAssembly)</h1>
+    <p class="muted">Loads your <code>s2built.bin</code> into the Genesis Plus GX core via WebRetro.</p>
+  </header>
+
   <div class="wrap">
     <div class="panel">
       <h3>Play</h3>
-      ./webretro/index.html?core=genesis_plus_gx&rom=./roms/s2built.bin&nobundle
-      </iframe>
-      <p><small>./webretro/?core=genesis_plus_gxOr open WebRetro and upload a ROM locally</a></small></p>
+      <p class="muted" id="status">Preparing emulator…</p>
+      <iframe id="emu" allow="gamepad *; fullscreen *" title="WebRetro (Genesis Plus GX)"></iframe>
+      <p>
+        <a class="pill" id="uploadLink" target="_blank" rel="noopener">Upload ROM instead</a>
+      </p>
+      <details>
+        <summary>What is this?</summary>
+        <ul>
+          <li>Emulator UI is loaded from an external WebRetro instance.</li>
+          <li>Default core: <code>genesis_plus_gx</code>. You can change the ROM with <code>?rom=</code> in the URL.</li>
+          <li>Example: <code>?rom=./roms/s2built.bin</code> (auto-resolves to an absolute URL)</li>
+        </ul>
+      </details>
+    </div>
+
+    <div class="panel">
+      <h3>Build notes</h3>
+      <ul>
+        <li><strong>Windows:</strong> run <code>build.bat</code></li>
+        <li><strong>macOS/Linux:</strong> run <code>build.lua</code> using <strong>Lua 5.3</strong> (older Lua versions will error on <code>//</code>, <code>&lt;&lt;</code>, <code>&gt;&gt;</code>)</li>
+        <li><strong>Output:</strong> <code>s2built.bin</code></li>
+      </ul>
+      <p class="muted">These requirements come from the upstream Sonic 2 disassembly readme.</p>
     </div>
   </div>
+
+  <script>
+    // === CONFIG ===
+    // 1) Use the official WebRetro instance by default:
+    const WEBRETRO_BASE = "https://binbashbanana.github.io/webretro/"; // or: "https://doggygamesshow123.github.io/webretro/"
+    // 2) Default ROM path within THIS site (optional: host docs/roms/s2built.bin):
+    const DEFAULT_ROM_PATH = "./roms/s2built.bin";
+    // 3) Force core to Genesis/Mega Drive:
+    const CORE = "genesis_plus_gx";
+    // 4) Add extra WebRetro flags here (nobundle can speed up initial load):
+    const EXTRA_FLAGS = ["nobundle"];
+
+    // Read ?rom=... (file name or absolute URL)
+    const pageUrl = new URL(window.location.href);
+    const romParam = pageUrl.searchParams.get("rom");
+
+    // Build the WebRetro URL
+    const emuUrl = new URL(WEBRETRO_BASE);
+    const qs = emuUrl.searchParams;
+
+    qs.set("core", CORE);
+
+    // Resolve ROM as absolute URL so WebRetro can fetch it cross-origin
+    const resolvedRom = romParam
+      ? new URL(romParam, pageUrl.href).href
+      : new URL(DEFAULT_ROM_PATH, pageUrl.href).href;
+
+    // If you don't want auto-boot without a hosted ROM, comment out this line:
+    qs.set("rom", resolvedRom);
+
+    // Optional flags
+    for (const flag of EXTRA_FLAGS) qs.set(flag, "");
+
+    // Set iframe + Upload link
+    const iframe = document.getElementById("emu");
+    iframe.src = emuUrl.toString();
+
+    const uploadUrl = new URL(WEBRETRO_BASE);
+    uploadUrl.searchParams.set("core", CORE);
+    document.getElementById("uploadLink").href = uploadUrl.toString();
+
+    document.getElementById("status").textContent = "If the game doesn't start, click “Upload ROM instead” and choose your local s2built.bin.";
+  </script>
 </body>
 </html>
