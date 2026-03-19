@@ -1,38 +1,57 @@
-# .github/workflows/build-bps.yml
-name: Build BPS patch
+name: Build BPS patchgithub-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/patches/sonic2.bps
+          git commit -m "chore: update workflow-built patch" || echo "No changes to commit"
+          git push
+``
+
 on:
   push:
     branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
 jobs:
-  build-bps:
+  bps:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      # 1) Build your s2built.bin (adjust to your repo's build steps)
+      # 1) Build s2built.bin (upstream instructs build.bat or build.lua with Lua 5.3; output is s2built.bin). [6](https://anosh.se/ips/)
       - name: Install Lua 5.3
-        run: sudo apt-get update && sudo apt-get install -y lua5.3
-      - name: Build s2built.bin
-        run: lua5.3 build.lua   # or ./build.bat on Windows runners
-      # s2built.bin is now in the repo root (adjust if different)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y lua5.3
+      - name: Build ROM (s2built.bin)
+        run: |
+          if [ -f build.lua ]; then lua5.3 build.lua; else echo "build.lua not found"; exit 1; fi
+          test -f s2built.bin || (echo "s2built.bin not produced" && exit 1)
 
-      # 2) Prepare RomPatcher.js CLI
+      # 2) Decode clean ROM from GitHub Secret (never commit ROM)
+      - name: Restore clean ROM from secret
+        env:
+          BASE_ROM_B64: ${{ secrets.BASE_ROM_B64 }}
+        run: |
+          test -n "$BASE_ROM_B64" || (echo "Missing BASE_ROM_B64 secret" && exit 1)
+          echo -n "$BASE_ROM_B64" | base64 -d > clean_sonic2.bin
+          ls -l clean_sonic2.bin
+
+      # 3) Fetch RomPatcher.js and install deps (used to CREATE BPS; documented in its README). [2](https://github.com/orgs/community/discussions/138832)
       - name: Fetch RomPatcher.js
         run: |
           git clone https://github.com/marcrobledo/RomPatcher.js.git rpjs
           cd rpjs && npm install
 
-      # 3) Create the BPS (you must provide the correct clean ROM in repo or as a secret artifact)
+      # 4) Create the BPS (clean -> built)
       - name: Create BPS
         run: |
           mkdir -p docs/patches
           node rpjs/index.js create "clean_sonic2.bin" "s2built.bin" --format bps --output "docs/patches/sonic2.bps"
+          ls -l docs/patches/sonic2.bps
 
-      # 4) Commit the patch back to your repo (optional)
-      - name: Commit patch
+      # 5) Commit updated patch into docs/patches/
+      - name: Commit patch artifact
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/patches/sonic2.bps
-          git commit -m "Update sonic2.bps" || echo "No changes"
-          git push
