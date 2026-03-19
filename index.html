@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Sonic 2 Disassembly (s2disasm)</title>
+  <meta name="description" content="A fork of the Sonic 2 disassembly. Build notes, links, and resources." />
+  <style>
+    :root { --bg:#0b0d12; --panel:#121621; --text:#e8edf7; --muted:#9fb2d0; --accent:#8ac7ff; --link:#9dd6ff; }
+    * { box-sizing: border-box; }
+    html,body { margin:0; padding:0; background:linear-gradient(160deg,#0a0f1e,#0d1224 55%,#0a0f1e); color:var(--text); font:16px/1.6 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial; }
+    a { color:var(--link); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .wrap { max-width: 980px; margin: 0 auto; padding: 28px 18px 64px; }
+    header { padding: 22px 18px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius:16px; backdrop-filter: blur(6px); }
+    h1 { margin: 0 0 8px; letter-spacing: .2px; font-size: 28px; }
+    .muted { color: var(--muted); }
+    .grid { display: grid; gap: 18px; grid-template-columns: repeat(auto-fit,minmax(260px,1fr)); margin-top: 18px; }
+    .card { background: var(--panel); border: 1px solid rgba(255,255,255,0.06); border-radius: 16px; padding: 16px 18px; box-shadow: 0 8px 28px rgba(0,0,0,.22); }
+    .btns a { display:inline-block; margin-right: 10px; margin-top: 12px; background: #1b2335; border: 1px solid #2c3a5a; padding: 8px 12px; border-radius: 10px; }
+    code, pre { background: #0f1320; border: 1px solid #1c2640; border-radius: 8px; color: #d9e4ff; }
+    code { padding: 2px 6px; }
+    pre { padding: 10px 12px; overflow: auto; }
+    footer { margin-top: 28px; color: var(--muted); font-size: 14px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Sonic 2 Disassembly (s2disasm)</h1>
+      <p class="muted">Build notes, directory links, and resources for my fork.</p>
+      <div class="btns">
+        <a href="https://github.com/DoggyGamesShow123/s2disasm">View on GitHub</a>
+        <a href="#build">Build Instructions</a>
+        <a href="#dirs">Directory Map</a>
+      </div>
+    </header>
+
+    <section class="grid" id="build">
+      <div class="card">
+        <h3>Build instructions</h3>
+        <ul>
+          <li><strong>Windows:</strong> run <code>build.bat</code></li>
+          <li><strong>macOS/Linux:</strong> run <code>build.lua</code> with <strong>Lua 5.3</strong></li>
+          <li><strong>Output:</strong> <code>s2built.bin</code></li>
+          <li><strong>Note:</strong> Lua 5.3 is required (older versions will error on <code>//</code>, <code>&lt;&lt;</code>, <code>&gt;&gt;</code>)</li>
+        </ul>
+        <p class="muted" style="margin-top:-6px">Reference: upstream <a href="https://github.com/sonicretro/s2disasm">sonicretro/s2disasm</a> README. </p>
+      </div>
+      <div class="card">
+        <h3>Legal note</h3>
+        <p>This project is for informational and educational purposes only. Commercial usage is prohibited. You assume responsibility for how you use it. See upstream repository for details.</p>
+      </div>
+    </section>
+
+    <section class="card" id="dirs">
+      <h3>Directory map</h3>
+      <ul>
+        <li><a href="https://github.com/Doggys</li>
+        <li>https://github.com/DoggyGamesShow123/s2disasm/tree/main/levellevel/</a> — level data</li>
+        <li>https://github.com/DoggyGamesShow123/s2disasm/tree/main/mappingsmappings/</a> — mapping files</li>
+        <li>https://github.com/DoggyGamesShow123/s2disasm/tree/main/soundsound/</a> — sound driver/data</li>
+      </ul>
+    </section>
+
+    <footer>
+      Upstream project: https://github.com/sonicretro/s2disasmsonicretro/s2disasm</a>
+    </footer>
+  </div>
+</body>
+</html>
